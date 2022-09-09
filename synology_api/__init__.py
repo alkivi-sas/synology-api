@@ -20,5 +20,6 @@ from . import \
     photos,\
     usb_copy,\
     virtualization,\
-    universal_search
+    universal_search,\
+    ldap_server
 
