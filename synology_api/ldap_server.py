@@ -53,6 +53,25 @@ class LDAPServer(base_api_core.Core):
                      'offset': offset, 'version': info['maxVersion']}
         return self.request_data("", api_path, req_param, 'post')
 
+    def get_base_dn(self):
+        api = 'SYNO.Entry.Request'
+        method = '"request"'
+        compound = '[{"api":"SYNO.DirectoryServer.Server","method":"get","version":1}]'
+        info = {'maxVersion': 1, 'minVersion': 1,
+                'path': 'entry.cgi', 'requestFormat': 'JSON'}
+        api_path = info['path']
+        req_param = {'api': api, 'compound': compound, "method": method,
+                     'version': info['maxVersion']}
+        result = self.request_data("", api_path, req_param, 'post')
+        if 'data' not in result:
+            raise Exception('Weird result')
+        result = result['data']
+        has_fail = result['has_fail']
+        if has_fail:
+            raise Exception(f'Weird result {result}')
+        base_dn = result['result'][0]['data']['base_dn']
+        return base_dn
+
     def create_new_user(
             self,
             login,
@@ -96,14 +115,15 @@ class LDAPServer(base_api_core.Core):
 
         api_path = info['path']
         userinfo = {'useruid': login, 'passwd': password, 'confirmpasswd': password}
+        base_dn = self.get_base_dn()
         usergroup = [{
-            'groupdn': 'cn=users,cn=groups,dc=ores',
+            'groupdn': f'cn=users,cn=groups,{base_dn}',
             'join' : True,
         }]
 
         for group in groups:
             usergroup.append({
-                'groupdn': f'cn={group},cn=groups,dc=ores',
+                'groupdn': f'cn={group},cn=groups,{base_dn}',
                 'join': True,
             })
 
